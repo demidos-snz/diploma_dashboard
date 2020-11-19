@@ -1,0 +1,43 @@
+DB_NAME = 'db.db'
+ADMIN_DEFAULT_PASSWORD = 123456
+MIN_LENGTH_PASSWORD = 6
+ADMIN_DEFAULT_EMAIL = 'admin@admin.com'
+SECRET_KEY_SERVER = ''
+
+URL = 'https://api-metrika.yandex.ru/stat/v1/data'
+# to get TOKEN, look: https://yandex.ru/dev/metrika/doc/api2/intro/authorization-docpage/
+TOKEN = ''
+HEADER = {'Authorization': f'OAuth {TOKEN}'}
+COUNTER = 44147844
+QUERY = {
+    'ids': COUNTER,
+    'accuracy': 'high',
+    'pretty': True,
+    'oauth_token': TOKEN
+}
+query_visits_of_start_hour = {
+    'dimensions': 'ym:s:startOfHour',
+    'metrics': 'ym:s:visits',
+}
+query_visits_of_device_category = {
+    'dimensions': 'ym:s:deviceCategory',
+    'metrics': 'ym:s:visits',
+}
+query_visits_of_traffic_source = {
+    'dimensions': 'ym:s:<attribution>TrafficSource',
+    'metrics': 'ym:s:visits',
+}
+query_users_count_of_region_city = {
+    'dimensions': 'ym:s:regionCity',
+    'metrics': 'ym:s:users',
+}
+CASES_OF_MODEL_QUERY = {
+    'VisitsCountByHour': query_visits_of_start_hour,
+    'PageViewsByDevices': query_visits_of_device_category,
+    'VisitsCountByTrafficSource': query_visits_of_traffic_source,
+    'RegionsMap': query_users_count_of_region_city,
+}
+
+# to get TOKEN_MAP, look: https://tech.yandex.ru/maps/jsapi/doc/2.1/dg/concepts/load-docpage/
+TOKEN_MAP = ''
+URL_MAP = f'https://geocode-maps.yandex.ru/1.x/?apikey={TOKEN_MAP}&format=json&geocode={{0}}'
