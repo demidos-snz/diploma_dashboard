@@ -11,36 +11,45 @@ from backend.models import Date, HoursInDay, VisitsCountByHour,\
     VisitsCountByTrafficSource, RegionsMap
 
 
+HOURS = HoursInDay().hours
+RADIUS_OF_CITIES_ON_MAP = [3, 2.75, 2.25, 2, 1.5]
 d = Date()
-h = HoursInDay()
-v = VisitsCountByHour()
-pvd = PageViewsByDevices()
-vcts = VisitsCountByTrafficSource()
-rm = RegionsMap()
 
 dander_alert = dbc.Alert('Select a date', color='danger', dismissable=True)
 
 
-def get_success_alert(date: str) -> dbc.Alert:
-    return dbc.Alert(f'You have chosen a date: {date}',
-                     color='success', dismissable=True)
+def get_success_alert(start_date: str, end_date: str) -> dbc.Alert:
+    return dbc.Alert(
+        f'You have chosen a start date {start_date}, end date {end_date}',
+        color='success', dismissable=True
+    )
 
 
-def bar_figure_visits_count_by_traffic_source(date: str) -> go.Figure:
-    visits_count_by_traffic_source = vcts.get_data_from_joining_models(
-        date=date,
+def get_values_of_axis(categories: list, data_db: list) -> list:
+    values_of_axis = []
+    for category in categories:
+        values_of_axis.append(
+            sum([row[1] for row in data_db if row[0] == category])
+        )
+    return values_of_axis
+
+
+def bar_figure_visits_count_by_traffic_source(start_date: str, end_date: str) -> go.Figure:
+    visits_count_by_traffic_source = VisitsCountByTrafficSource().get_data_from_joining_models(
+        start_date=start_date,
+        end_date=end_date,
         select_name_column='visits_count',
         order_name_column='traffic_source_id',
         model=TrafficSource
     )
 
+    x = list({row[0] for row in visits_count_by_traffic_source})
+
     fig = go.Figure()
 
-    fig.add_trace(
-        go.Bar(
-            x=[row[0] for row in visits_count_by_traffic_source],
-            y=[row[1] for row in visits_count_by_traffic_source]
-        )
+    fig.add_trace(go.Bar(
+        x=x,
+        y=get_values_of_axis(categories=x, data_db=visits_count_by_traffic_source))
     )
 
     fig.update_layout(
@@ -50,9 +59,10 @@ def bar_figure_visits_count_by_traffic_source(date: str) -> go.Figure:
     return fig
 
 
-def pie_figure_page_views_by_devices(date: str) -> (html.H1, go.Figure):
-    page_views_by_devices = pvd.get_data_from_joining_models(
-        date=date,
+def pie_figure_page_views_by_devices(start_date: str, end_date: str) -> (html.H1, go.Figure):
+    page_views_by_devices = PageViewsByDevices().get_data_from_joining_models(
+        start_date=start_date,
+        end_date=end_date,
         select_name_column='page_views',
         order_name_column='device_id',
         model=Devices
@@ -78,28 +88,29 @@ def pie_figure_page_views_by_devices(date: str) -> (html.H1, go.Figure):
     return count_visits_string, fig
 
 
-def scatter_figure_visits_count_by_hour(date: str) -> go.Figure:
-    visits_count_by_every_hour = v.get_data_from_joining_models(
-        date=date,
+def scatter_figure_visits_count_by_hour(start_date: str, end_date: str) -> go.Figure:
+    visits_count_by_every_hour = VisitsCountByHour().get_data_from_joining_models(
+        start_date=start_date,
+        end_date=end_date,
         select_name_column='visits_count_by_hour',
-        order_name_column='hour_id'
+        order_name_column='hour_id',
+        model=HoursInDay
     )
 
-    values_x_axis = [i for i in range(len(h.hours))]
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=values_x_axis,
-        y=visits_count_by_every_hour,
+        x=HOURS,
+        y=get_values_of_axis(categories=HOURS, data_db=visits_count_by_every_hour),
         mode='markers',
     ))
 
     fig.update_layout(
         xaxis=dict(
-            tickvals=values_x_axis,
-            ticktext=h.hours
+            tickvals=HOURS,
+            ticktext=HoursInDay().hours
         ),
-        xaxis_title=f'Hours of {date}',
+        xaxis_title=f'Hours of {start_date} - {end_date}',
         yaxis_title='Visits',
         title_font_size=25, title_x=0.5,
         title_text='visits_count_by_hour'
@@ -107,8 +118,11 @@ def scatter_figure_visits_count_by_hour(date: str) -> go.Figure:
     return fig
 
 
-def scattergeo_figure_regions_map(date: str) -> go.Figure:
-    mapping_data = rm.get_list_with_city_name_code_country_coord(date=date)
+def scattergeo_figure_regions_map(start_date: str, end_date: str) -> go.Figure:
+    mapping_data = RegionsMap().get_list_with_city_name_code_country_coord(
+        start_date=start_date,
+        end_date=end_date
+    )
 
     text = 'City: {0}<br>Country index: {1}' \
            '<br>Count visitors: {2}'
@@ -124,10 +138,9 @@ def scattergeo_figure_regions_map(date: str) -> go.Figure:
 
     fig = go.Figure()
 
-    limits = [
-        [1, 2, 3], [3, 6, 2.75], [7, 10, 2.25],
-        [11, 15, 2], [16, 3000, 1.5]
-    ]
+    limits = get_limits_params_for_map(
+        counts_users=list({row[-1] for row in mapping_data})
+    )
     colors = ['royalblue', 'crimson', 'lightseagreen', 'orange', 'black']
 
     for i, lim in enumerate(limits):
@@ -143,7 +156,6 @@ def scattergeo_figure_regions_map(date: str) -> go.Figure:
             text=df_sub['text'], name=name,
             mode='markers',
             marker=dict(
-                # size=2. * max(df['users_count']) / lim[2] ** 2,
                 size=2 * 45 / lim[2] ** 2,
                 color=colors[i],
                 sizemode='area'
@@ -163,6 +175,29 @@ def scattergeo_figure_regions_map(date: str) -> go.Figure:
     return fig
 
 
+def get_limits_params_for_map(counts_users: list) -> list:
+    counts_users.sort(key=lambda x: x)
+    len_diapason = len(counts_users) // len(RADIUS_OF_CITIES_ON_MAP) + 1
+    limits = []
+    start = 0
+    for i in RADIUS_OF_CITIES_ON_MAP:
+        diapason = counts_users[start:] if start + len_diapason >= len(counts_users) \
+            else counts_users[start:start + len_diapason]
+        len_diapason = len(diapason)
+        if len_diapason == 1:
+            limits.append([diapason[0], diapason[0], i])
+            break
+        elif len_diapason == 0:
+            diapason = counts_users[start - len_diapason:-1]
+            limits[-1] = [diapason[0], diapason[-1], i]
+            limits.append([counts_users[-1], counts_users[-1], i])
+            break
+        else:
+            limits.append([diapason[0], diapason[-1], i])
+        start += len_diapason
+    return limits
+
+
 @app.callback(
     [Output('date-alert', 'children'),
      Output('visits-count', 'children'),
@@ -170,15 +205,21 @@ def scattergeo_figure_regions_map(date: str) -> go.Figure:
      Output('graph-page-views-by-devices', 'figure'),
      Output('graph-visits-count-by-traffic-source', 'figure'),
      Output('graph-regions_map', 'figure')],
-    [Input('date-picker-single', 'date')])
-def update_output(date):
-    date, alert = [date, True] if date is not None else [d.max_date, False]
-    scatter = scatter_figure_visits_count_by_hour(date=date)
-    all_visits, pie = pie_figure_page_views_by_devices(date=date)
-    bar = bar_figure_visits_count_by_traffic_source(date=date)
-    scattergeo = scattergeo_figure_regions_map(date=date)
+    [Input('date-picker', 'start_date'),
+     Input('date-picker', 'end_date'),
+     ])
+def update_output(start_date: str, end_date: str):
+    start_date, end_date, alert = [start_date, end_date, True] \
+        if start_date is not None or end_date is not None \
+        else [d.min_date, d.max_date, False]
+    scatter = scatter_figure_visits_count_by_hour(start_date=start_date, end_date=end_date)
+    all_visits, pie = pie_figure_page_views_by_devices(start_date=start_date, end_date=end_date)
+    bar = bar_figure_visits_count_by_traffic_source(start_date=start_date, end_date=end_date)
+    scattergeo = scattergeo_figure_regions_map(start_date=start_date, end_date=end_date)
     if alert:
-        return get_success_alert(date=date), all_visits, scatter, pie, bar, scattergeo
+        return get_success_alert(
+            start_date=start_date, end_date=end_date
+        ), all_visits, scatter, pie, bar, scattergeo
     else:
         return dander_alert, all_visits, scatter, pie, bar, scattergeo
 
@@ -192,16 +233,16 @@ def layout():
                 width=6
             ),
             dbc.Col(
-                dcc.DatePickerSingle(
-                    id='date-picker-single',
+                dcc.DatePickerRange(
+                    id='date-picker',
                     display_format='DD-MM-YYYY',
                     min_date_allowed=d.min_date,
                     max_date_allowed=d.max_date,
                     initial_visible_month=d.max_date,
-                    date=d.max_date,
+                    start_date=d.min_date,
+                    end_date=d.max_date,
                     clearable=True,
                     with_portal=True,
-                    placeholder='Select a date',
                     style=dict(float='right')
                 ),
                 width=6

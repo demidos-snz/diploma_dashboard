@@ -4,11 +4,7 @@ from importlib import import_module
 from backend.models import Date
 from backend.request_handlers.requester import Requester
 
-try:
-    from backend.settings import URL, HEADER, QUERY, CASES_OF_MODEL_QUERY, ADMIN_DEFAULT_EMAIL, ADMIN_DEFAULT_PASSWORD
-except ImportError:
-    exit('copy settings.py.default->settings.py and '
-         'set TOKEN, TOKEN_MAP and SECRET_KEY_SERVER')
+from backend.settings import URL, HEADER, QUERY, CASES_OF_MODEL_QUERY
 
 
 class DeltaDaysIsNotInt(Exception):
