@@ -32,12 +32,12 @@ class ModelWithTwoId(Model):
                                      order_name_column: str, model) -> list:
         start_date_id = Date().get(date=start_date)
         end_date_id = Date().get(date=end_date)
-        query = self.select(model.name, self._meta.columns[select_name_column]).\
+        query = self.select(model.name, fn.SUM(self._meta.columns[select_name_column])).\
             join(model, on=self._meta.columns[order_name_column] == model.id).\
             where(
                 self._meta.columns['date_id'] >= start_date_id,
                 self._meta.columns['date_id'] <= end_date_id
-            ).tuples()
+            ).group_by(model.name).tuples()
         return [row for row in query]
 
 

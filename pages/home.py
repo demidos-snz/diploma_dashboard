@@ -11,8 +11,8 @@ from backend.models import Date, HoursInDay, VisitsCountByHour,\
     VisitsCountByTrafficSource, RegionsMap
 
 
-HOURS = HoursInDay().hours
 RADIUS_OF_CITIES_ON_MAP = [3, 2.75, 2.25, 2, 1.5]
+
 d = Date()
 
 dander_alert = dbc.Alert('Select a date', color='danger', dismissable=True)
@@ -25,15 +25,6 @@ def get_success_alert(start_date: str, end_date: str) -> dbc.Alert:
     )
 
 
-def get_values_of_axis(categories: list, data_db: list) -> list:
-    values_of_axis = []
-    for category in categories:
-        values_of_axis.append(
-            sum([row[1] for row in data_db if row[0] == category])
-        )
-    return values_of_axis
-
-
 def bar_figure_visits_count_by_traffic_source(start_date: str, end_date: str) -> go.Figure:
     visits_count_by_traffic_source = VisitsCountByTrafficSource().get_data_from_joining_models(
         start_date=start_date,
@@ -43,14 +34,12 @@ def bar_figure_visits_count_by_traffic_source(start_date: str, end_date: str) ->
         model=TrafficSource
     )
 
-    x = list({row[0] for row in visits_count_by_traffic_source})
-
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
-        x=x,
-        y=get_values_of_axis(categories=x, data_db=visits_count_by_traffic_source))
-    )
+        x=[row[0] for row in visits_count_by_traffic_source],
+        y=[row[1] for row in visits_count_by_traffic_source]
+    ))
 
     fig.update_layout(
         title_font_size=25, title_x=0.5,
@@ -100,16 +89,12 @@ def scatter_figure_visits_count_by_hour(start_date: str, end_date: str) -> go.Fi
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=HOURS,
-        y=get_values_of_axis(categories=HOURS, data_db=visits_count_by_every_hour),
+        x=HoursInDay().hours,
+        y=[row[1] for row in visits_count_by_every_hour],
         mode='markers',
     ))
 
     fig.update_layout(
-        xaxis=dict(
-            tickvals=HOURS,
-            ticktext=HoursInDay().hours
-        ),
         xaxis_title=f'Hours of {start_date} - {end_date}',
         yaxis_title='Visits',
         title_font_size=25, title_x=0.5,
@@ -183,11 +168,11 @@ def get_limits_params_for_map(counts_users: list) -> list:
     for i in RADIUS_OF_CITIES_ON_MAP:
         diapason = counts_users[start:] if start + len_diapason >= len(counts_users) \
             else counts_users[start:start + len_diapason]
-        len_diapason = len(diapason)
-        if len_diapason == 1:
+        l_diapason = len(diapason)
+        if l_diapason == 1:
             limits.append([diapason[0], diapason[0], i])
             break
-        elif len_diapason == 0:
+        elif l_diapason == 0:
             diapason = counts_users[start - len_diapason:-1]
             limits[-1] = [diapason[0], diapason[-1], i]
             limits.append([counts_users[-1], counts_users[-1], i])
@@ -209,9 +194,7 @@ def get_limits_params_for_map(counts_users: list) -> list:
      Input('date-picker', 'end_date'),
      ])
 def update_output(start_date: str, end_date: str):
-    start_date, end_date, alert = [start_date, end_date, True] \
-        if start_date is not None or end_date is not None \
-        else [d.min_date, d.max_date, False]
+    start_date, end_date, alert = check_input_date(start_date=start_date, end_date=end_date)
     scatter = scatter_figure_visits_count_by_hour(start_date=start_date, end_date=end_date)
     all_visits, pie = pie_figure_page_views_by_devices(start_date=start_date, end_date=end_date)
     bar = bar_figure_visits_count_by_traffic_source(start_date=start_date, end_date=end_date)
@@ -222,6 +205,18 @@ def update_output(start_date: str, end_date: str):
         ), all_visits, scatter, pie, bar, scattergeo
     else:
         return dander_alert, all_visits, scatter, pie, bar, scattergeo
+
+
+def check_input_date(start_date: str, end_date: str) -> list:
+    alert = True
+    if start_date is None and end_date is None:
+        start_date = d.min_date
+        end_date = d.max_date
+        alert = False
+    if end_date is None:
+        end_date = d.max_date
+        alert = False
+    return [start_date, end_date, alert]
 
 
 def layout():
