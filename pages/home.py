@@ -38,7 +38,8 @@ def bar_figure_visits_count_by_traffic_source(start_date: str, end_date: str) ->
 
     fig.add_trace(go.Bar(
         x=[row[0] for row in visits_count_by_traffic_source],
-        y=[row[1] for row in visits_count_by_traffic_source]
+        y=[row[1] for row in visits_count_by_traffic_source],
+        hovertemplate='%{x}: %{y:.f}<extra></extra>',
     ))
 
     fig.update_layout(
