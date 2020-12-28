@@ -214,6 +214,9 @@ def check_input_date(start_date: str, end_date: str) -> list:
         start_date = d.min_date
         end_date = d.max_date
         alert = False
+    if start_date is None:
+        start_date = d.min_date
+        alert = False
     if end_date is None:
         end_date = d.max_date
         alert = False
