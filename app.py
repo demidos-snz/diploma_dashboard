@@ -8,6 +8,7 @@ try:
     from pages.auth_pages import login, registration
     from server import app
     from pages import home, profile
+    from backend.settings import DEBUG
 except ImportError:
     exit('copy settings.py.default->settings.py and '
          'set TOKEN, TOKEN_MAP and SECRET_KEY_SERVER')
@@ -79,4 +80,4 @@ def user_logout(input):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0', port=8050, debug=DEBUG)

@@ -29,7 +29,6 @@ DATABASE = {
     'name': DB_NAME,
     'engine': 'peewee.SqliteDatabase',
 }
-DEBUG = True
 SECRET_KEY = SECRET_KEY_SERVER
 server.config.from_object(__name__)
 
