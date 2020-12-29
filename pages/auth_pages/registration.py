@@ -42,7 +42,7 @@ def layout():
                 html.Br(),
                 dcc.Link('Login', href='/login'),
             ])
-        ], width=6)
+        ], id='row_registration', style=dict(visibility='hidden'), width=6)
     )
 
 
@@ -60,7 +60,8 @@ def registrations_fields_default(trigger):
     [Output('register-'+field, 'invalid') for field in REGISTRATIONS_FIELDS] +
     [Output('register-formtext-'+field, 'children') for field in REGISTRATIONS_FIELDS] +
     [Output('register-'+field, 'color') for field in REGISTRATIONS_FIELDS] +
-    [Output('register-button', 'disabled')],
+    [Output('register-button', 'disabled')] +
+    [Output('row_registration', 'style')],
     [Input('register-'+field, 'value') for field in REGISTRATIONS_FIELDS]
 )
 def validate_registration_params(username, email, password, confirm):

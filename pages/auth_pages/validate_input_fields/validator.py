@@ -40,6 +40,7 @@ class Validators:
             *list(self.formtexts.values()),
             *list(self.formcolors.values()),
             self.button_disabled,
+            {'visibility': 'visible'},
         ]
 
     def __checking_username(self):

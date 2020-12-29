@@ -42,7 +42,7 @@ def layout():
 
                 dbc.Button('Save changes', color='primary', id='profile-button', disabled=True),
             ])
-        ], width=6)
+        ], id='row_admin', style=dict(visibility='hidden'), width=6)
     )
 
 
@@ -67,7 +67,8 @@ def profile_values(trigger):
     [Output('profile-'+field, 'invalid') for field in PROFILE_FIELDS] +
     [Output('profile-formtext-'+field, 'children') for field in PROFILE_FIELDS] +
     [Output('profile-'+field, 'color') for field in PROFILE_FIELDS] +
-    [Output('profile-button', 'disabled')],
+    [Output('profile-button', 'disabled')] +
+    [Output('row_admin', 'style')],
     [Input('profile-'+field, 'value') for field in PROFILE_FIELDS]
 )
 def profile_validate_inputs(username, password, confirm):

@@ -6,22 +6,26 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from server import app
-from backend.models import Date, HoursInDay, VisitsCountByHour,\
-    Devices, PageViewsByDevices, TrafficSource,\
-    VisitsCountByTrafficSource, RegionsMap
-
+from backend.models import Date, HoursInDay, VisitsCountByHour, Devices, \
+    PageViewsByDevices, TrafficSource, VisitsCountByTrafficSource, RegionsMap
 
 RADIUS_OF_CITIES_ON_MAP = [3, 2.75, 2.25, 2, 1.5]
 
 d = Date()
-
-dander_alert = dbc.Alert('Select a date', color='danger', dismissable=True)
 
 
 def get_success_alert(start_date: str, end_date: str) -> dbc.Alert:
     return dbc.Alert(
         f'You have chosen a start date {start_date}, end date {end_date}',
         color='success', dismissable=True
+    )
+
+
+def get_danger_alert(date: str) -> dbc.Alert:
+    return dbc.Alert(
+        # fixme
+        f'Select correct date, data get from {date}',
+        color='danger', dismissable=True
     )
 
 
@@ -96,12 +100,19 @@ def scatter_figure_visits_count_by_hour(start_date: str, end_date: str) -> go.Fi
     ))
 
     fig.update_layout(
-        xaxis_title=f'Hours of {start_date} - {end_date}',
+        xaxis_title=get_title_text(start_date=start_date, end_date=end_date),
         yaxis_title='Visits',
         title_font_size=25, title_x=0.5,
         title_text='visits_count_by_hour'
     )
     return fig
+
+
+def get_title_text(start_date: str, end_date: str) -> str:
+    if start_date == end_date:
+        return f'Hours of {start_date}'
+    else:
+        return f'Hours of {start_date} - {end_date}'
 
 
 def scattergeo_figure_regions_map(start_date: str, end_date: str) -> go.Figure:
@@ -190,10 +201,13 @@ def get_limits_params_for_map(counts_users: list) -> list:
      Output('graph-visits-count-by-hour', 'figure'),
      Output('graph-page-views-by-devices', 'figure'),
      Output('graph-visits-count-by-traffic-source', 'figure'),
-     Output('graph-regions_map', 'figure')],
+     Output('graph-regions_map', 'figure'),
+     Output('row_0', 'style'),
+     Output('row_1', 'style'),
+     Output('row_2', 'style'),
+     Output('row_3', 'style')],
     [Input('date-picker', 'start_date'),
-     Input('date-picker', 'end_date'),
-     ])
+     Input('date-picker', 'end_date')])
 def update_output(start_date: str, end_date: str):
     start_date, end_date, alert = check_input_date(start_date=start_date, end_date=end_date)
     scatter = scatter_figure_visits_count_by_hour(start_date=start_date, end_date=end_date)
@@ -201,24 +215,33 @@ def update_output(start_date: str, end_date: str):
     bar = bar_figure_visits_count_by_traffic_source(start_date=start_date, end_date=end_date)
     scattergeo = scattergeo_figure_regions_map(start_date=start_date, end_date=end_date)
     if alert:
-        return get_success_alert(
-            start_date=start_date, end_date=end_date
-        ), all_visits, scatter, pie, bar, scattergeo
+        return [
+            get_success_alert(
+                start_date=start_date, end_date=end_date
+            ), all_visits, scatter, pie, bar, scattergeo,
+            {'visibility': 'visible'}, {'visibility': 'visible'}, {'visibility': 'visible'}, {'visibility': 'visible'}
+        ]
     else:
-        return dander_alert, all_visits, scatter, pie, bar, scattergeo
+        return [
+            get_danger_alert(date=start_date), all_visits, scatter, pie, bar, scattergeo,
+            {'visibility': 'visible'}, {'visibility': 'visible'}, {'visibility': 'visible'}, {'visibility': 'visible'}
+        ]
 
 
 def check_input_date(start_date: str, end_date: str) -> list:
     alert = True
     if start_date is None and end_date is None:
-        start_date = d.min_date
+        start_date = d.max_date
         end_date = d.max_date
         alert = False
     if start_date is None:
-        start_date = d.min_date
+        start_date = end_date
         alert = False
     if end_date is None:
-        end_date = d.max_date
+        end_date = start_date
+        alert = False
+    if start_date >= end_date:
+        end_date = start_date
         alert = False
     return [start_date, end_date, alert]
 
@@ -226,6 +249,7 @@ def check_input_date(start_date: str, end_date: str) -> list:
 def layout():
     return html.Div([
         html.Div(id='date-alert'),
+
         dbc.Row([
             dbc.Col(
                 html.Div(id='visits-count'),
@@ -246,7 +270,8 @@ def layout():
                 ),
                 width=6
             ),
-        ]),
+        ], id='row_0', style=dict(visibility='hidden')),
+
         dbc.Row([
             dbc.Col(
                 dcc.Graph(id='graph-visits-count-by-traffic-source'),
@@ -256,20 +281,22 @@ def layout():
                 dcc.Graph(id='graph-page-views-by-devices'),
                 width=4
             ),
-        ]),
+        ], id='row_1', style=dict(visibility='hidden')),
         html.Br(),
+
         dbc.Row(
             dbc.Col(
                 dcc.Graph(id='graph-visits-count-by-hour'),
                 width=12
-            ),
+            ), id='row_2', style=dict(visibility='hidden')
         ),
         html.Br(),
+
         dbc.Row(
             dbc.Col(
                 dcc.Graph(id='graph-regions_map'),
                 width=12
-            ),
+            ), id='row_3', style=dict(visibility='hidden')
         ),
         html.Br(),
         html.Br(),

@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+import dash_daq as daq
 from dash.dependencies import Input, Output
 from flask_login import current_user, logout_user
 
@@ -18,10 +19,13 @@ header = dbc.Navbar(
     dbc.Container([
         dbc.NavbarBrand('Test Dash Project', href='/home'),
         dbc.Nav([
-            dbc.NavItem(dbc.NavLink('Home', id='home', href='/home', style=dict(display='none'))),
-            dbc.NavItem(dbc.NavLink(id='profile', href='/profile', style=dict(display='none'))),
-            dbc.NavItem(dbc.NavLink(id='user-action', href='/login', style=dict(display='none'))),
-        ])
+            dbc.NavItem(dbc.NavLink('Home', id='home', href='/home')),
+            dbc.NavItem(dbc.NavLink(id='profile', href='/profile')),
+            dbc.NavItem(dbc.NavLink(id='user-action', href='/login')),
+            dbc.NavItem(dbc.NavLink(daq.ToggleSwitch(
+                id='darktheme-daq-toggleswitch', className='dark-theme-control', size=35
+            ))),
+        ], id='navigation_panel', style=dict(display='none')),
     ]),
     className='mb-5',
 )
@@ -58,25 +62,16 @@ def router(pathname):
 
 
 @app.callback(
-    Output('profile', 'children'),
-    [Input('page-content', 'children')])
-def profile_link(content):
-    if current_user.is_authenticated:
-        return html.Div(current_user.username)
-
-
-@app.callback(
     [Output('user-action', 'children'),
      Output('user-action', 'href'),
-     Output('user-action', 'style'),
-     Output('home', 'style'),
-     Output('profile', 'style')],
+     Output('profile', 'children'),
+     Output('navigation_panel', 'style')],
     [Input('page-content', 'children')])
 def user_logout(input):
     if current_user.is_authenticated:
-        return 'Logout', '/logout', {}, {}, {}
+        return 'Logout', '/logout', html.Div(current_user.username), {}
     else:
-        return 'Sign In', '/login', dict(display='none'), dict(display='none'), dict(display='none')
+        return 'Sign In', '/login', '', dict(display='none')
 
 
 if __name__ == '__main__':
